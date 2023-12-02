@@ -24,13 +24,13 @@ def ft(file):
 
     # Прямое преобразование Фурье
     start = datetime.now()
-    dft = functions.dft(signal)
+    dft = functions.ft(signal)
     finish = datetime.now()
     print('Время работы dft: ' + str(finish - start))
 
     # Обратное преобразование Фурье
     start = datetime.now()
-    idft = functions.idft(signal)
+    idft = functions.ift(signal)
     finish = datetime.now()
     print('Время работы idft: ' + str(finish - start))
 

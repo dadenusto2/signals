@@ -4,11 +4,11 @@ import numpy as np
 
 
 # Прямое преобразование Фурье
-def dft(x):
+def ft(x):
     N = len(x)
     X = []
     for k in range(N):
-        # print(f'{k}/{N}')
+        print(f'{k}/{N}')
         real = 0
         imag = 0
         for n in range(N):
@@ -24,17 +24,17 @@ def dft(x):
 
 
 # Обратное преобразование Фурье
-def idft(X):
+def ift(X):
     N = len(X)
     x = []
     for k in range(N):
         real = 0
-        # print(f'{k}/{N}')
+        print(f'{k}/{N}')
         for n in range(N):
             angle = 2 * math.pi * k * n / N
             cos_val = math.cos(angle)
             sin_val = math.sin(angle)
-            real += X[k].real * cos_val - X[k].imag * sin_val
+            real += X[k].real * cos_val + X[k].imag * sin_val
         x.append(real / N)
     return x
 
