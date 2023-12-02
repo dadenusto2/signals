@@ -39,15 +39,6 @@ def ift(X):
     return x
 
 
-def discret_ft(x):
-    N = len(x)
-    n = np.arange(N)
-    k = n.reshape((N, 1))
-    e = np.exp(-2j * np.pi * k * n / N)
-    X = np.dot(e, x)
-    return X
-
-
 # частотная ось
 def frequency_axis(N, fs):
     df = fs / N  # Шаг частоты (разрешение)
