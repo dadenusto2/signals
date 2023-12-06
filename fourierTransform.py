@@ -1,21 +1,51 @@
+import math
 from datetime import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
 import functions
+from test import get_signal
+
+def direct_ft(x):
+    N = len(x)
+    X = []
+    for k in range(N):
+        print(f'{k}/{N}')
+        real = 0
+        imag = 0
+        for n in range(N):
+            # степень (2pi/N*kn)
+            angle = 2 * math.pi * k * n / N
+            # e^angle=cos(angle)-isin(angle)
+            cos_val = math.cos(angle)
+            sin_val = math.sin(angle)
+            real += x[n] * cos_val
+            imag -= x[n] * sin_val
+        X.append(complex(real, imag))
+    return X
+
+
+# Обратное преобразование Фурье
+def direct_ift(X):
+    N = len(X)
+    x = []
+    for k in range(N):
+        real = 0
+        print(f'{k}/{N}')
+        for n in range(N):
+            angle = 2 * math.pi * k * n / N
+            cos_val = math.cos(angle)
+            sin_val = math.sin(angle)
+            real += X[k].real * cos_val + X[k].imag * sin_val
+        x.append(real / N)
+    return x
+
 def ft(file):
 
-    # чтение данных из файла
-    data = np.genfromtxt(file, delimiter='', skip_header=7)
-    signal_values = data[:, 1]  # второй столбец содержит значения сигнала
 
-    # получение временной оси
-    time = data[:, 0]
+    time, signal = get_signal('signal 4 сек.wav')
 
-    # получение значения сигнала
-    signal = data[:, 1]
 
-    # построение графика
     plt.plot(time, signal)
     plt.xlabel('Время, с')
     plt.ylabel('Амплитуда')
@@ -26,13 +56,13 @@ def ft(file):
     start = datetime.now()
     dft = functions.ft(signal)
     finish = datetime.now()
-    print('Время работы dft: ' + str(finish - start))
+    print('Время работы direct_ft: ' + str(finish - start))
 
     # Обратное преобразование Фурье
     start = datetime.now()
     idft = functions.ift(signal)
     finish = datetime.now()
-    print('Время работы idft: ' + str(finish - start))
+    print('Время работы direct_dft: ' + str(finish - start))
 
     # Дикретное преобразование Фурье
     start = datetime.now()
@@ -42,22 +72,10 @@ def ft(file):
 
     # Быстрое преобразование Фурье
     start = datetime.now()
-    discret_ft = functions.discret_ft(signal)
-    fft = np.fft.fft(signal_values)
+    fft = np.fft.fft(signal)
     finish = datetime.now()
     print('Время работы fft: ' + str(finish - start))
-    # Быстрое преобразование Фурье
-    # Функция scipy.fft.fftshift располагает компоненту с нулевой частотой в середине частотного спектра
-    start = datetime.now()
-    fftshift = np.fft.fftshift(signal_values)
-    finish = datetime.now()
-    print('Время работы fftshift: ' + str(finish - start))
-    # Быстрое преобразование Фурье
-    # Для получения укороченной (без отрицательных частот) последовательности используется функция rfft
-    start = datetime.now()
-    rfft = np.fft.rfft(signal_values)
-    finish = datetime.now()
-    print('Время работы rfft: ' + str(finish - start))
+
 
     # алгоритмы вычисления прямого Фурье
     fft_algorithms = ['dft', 'discret_ft', 'fft', 'fftshift', 'rfft']

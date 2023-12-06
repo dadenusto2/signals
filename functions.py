@@ -3,8 +3,8 @@ import math
 import numpy as np
 
 
-# Прямое преобразование Фурье
-def ft(x):
+# Прямое дискретное преобразование Фурье
+def direct_ft(x):
     N = len(x)
     X = []
     for k in range(N):
@@ -23,8 +23,8 @@ def ft(x):
     return X
 
 
-# Обратное преобразование Фурье
-def ift(X):
+# Обратное дискретное преобразование Фурье
+def direct_ift(X):
     N = len(X)
     x = []
     for k in range(N):

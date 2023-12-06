@@ -1,103 +1,142 @@
+import math
 import time
 import wave
+from datetime import datetime
 
 import matplotlib.pyplot as plt
+import numpy.fft
+from numba import njit
 from scipy.io import wavfile
 import numpy as np
 import pylab
 
-
-def ft1(times, amplitudes, omegas):
-    delta_t = times[1] - times[0]
-    X = np.zeros((len(omegas),), dtype=np.complex128)
-    for i in range(len(omegas)):
-        X[i] = np.dot(amplitudes, np.exp(-1j * omegas[i] * times))
-    return X * delta_t
-
-
-def ift1(times, spectrum, omegas):
-    delta_omega = omegas[1] - omegas[0]
-    x = np.zeros((len(times),))
-    for i in range(len(times)):
-        x[i] = np.dot(spectrum, np.exp(1j * omegas * times[i])).real
-    return x * (delta_omega / np.pi)
-
-
-def ft2(times, amplitudes, omegas):
-    delta_t = times[1] - times[0]
-    X = np.zeros((len(omegas),), dtype=np.complex128)
-    for i in range(len(omegas)):
-        edt = np.exp(1j * omegas[i] * delta_t)
-        k = (2 - edt - (1 / edt)) / (delta_t * omegas[i] ** 2)
-        X[i] = k * np.dot(amplitudes, np.exp(-1j * omegas[i] * times))
+# Прямое дискретное преобразование Фурье
+def direct_ft(x):
+    N = len(x)
+    X = []
+    for k in range(N):
+        real = 0
+        imag = 0
+        for n in range(N):
+            # степень (2pi/N*kn)
+            angle = 2 * math.pi * k * n / N
+            # e^angle=cos(angle)-isin(angle)
+            cos_val = math.cos(angle)
+            sin_val = math.sin(angle)
+            real += x[n] * cos_val
+            imag -= x[n] * sin_val
+        X.append(complex(real, imag))
     return X
 
 
-def ift2(times, spectrum, omegas):
-    delta_omega = omegas[1] - omegas[0]
-    x = np.zeros((len(times),))
-    for i in range(len(times)):
-        e_d_omega = np.exp(1j * times[i] * delta_omega)
-        k = (2 - e_d_omega - (1 / e_d_omega)) / (delta_omega * times[i] ** 2)
-        x[i] = (k * np.dot(spectrum, np.exp(1j * times[i] * omegas))).real
-    return x / np.pi
+# Обратное дискретное преобразование Фурье
+def direct_ift(X):
+    N = len(X)
+    x = []
+    for k in range(N):
+        real = 0
+        for n in range(N):
+            angle = 2 * math.pi * k * n / N
+            cos_val = math.cos(angle)
+            sin_val = math.sin(angle)
+            real += X[k].real * cos_val + X[k].imag * sin_val
+        x.append(real / N)
+    return x
 
 
-def get_data_from_file(str):
-    wav = wave.open(str,mode='r')
-    (nchannels, sampwidth, framerate, nframes, comptype, compname) = wav.getparams()
-    content = wav.readframes(nframes)
+# Считывание сигнала из файла
+def get_signal(path):
+    audio = wave.open(path,mode='r')
+    (nchannels, sampwidth, framerate, nframes, comptype, compname) = audio.getparams()
+    content = audio.readframes(nframes)
     types = {
         1: np.int8,
         2: np.int16,
         4: np.int32
     }
     samples = np.fromstring(content, dtype=types[sampwidth])
-    amplitudes = []
+    signal = []
     for i in range (0,len(samples),2):
-        amplitudes.append((samples[i]+samples[i+1])/2)
-    t = []
+        signal.append((samples[i]+samples[i+1])/2)
+    time = []
     for i in range(1,nframes+1):
-        t.append(i/framerate)
-    t=np.array(t)
-    amplitudes = np.array(amplitudes)
-    return t, amplitudes
+        time.append(i/framerate)
+    time=np.array(time)
+    signal = np.array(signal,dtype=np.complex128)
+    return time, signal
 
 
-def first_task():
-    f= np.arange(0, 1000, 0.2)
-    omegas = f*2*np.pi
+def df(method):
 
-    # сумма (прямоугольники)
-    spectrum = ft1(times, amplitudes, omegas)
-    restored_signal = ift1(times, spectrum, omegas)
+    N = len(signal)
+    delta_t = time[1] - time[0]
+    delta_omega = 2 * np.pi / (N * delta_t)
+    omegas = np.array([k * delta_omega for k in range(N)])
 
-    # интеграл
-    # spectrum = ft2(times, amplitudes, omegas)
-    # restored_signal = ift2(times, spectrum, omegas)
+    if method == 'direct_df':
+        start = datetime.now()
+        spectrum = direct_ft(signal)
+        finish = datetime.now()
+        print('Время работы ft_integral: ' + str(finish - start))
 
-    ax1 = fig.add_subplot(2, 1, 2)
-    ax1.plot(omegas / (2 * np.pi), abs(spectrum), '', label="Спектр")
+        start = datetime.now()
+        restored_signal = direct_ift(spectrum)
+        finish = datetime.now()
+        print('Время работы ift_integral: ' + str(finish - start))
+    elif method == 'fft':
+        start = datetime.now()
+        spectrum = numpy.fft.fft(signal)
+        finish = datetime.now()
+        print('Время работы fft: ' + str(finish - start))
+
+        start = datetime.now()
+        restored_signal = numpy.fft.ifft(spectrum)
+        finish = datetime.now()
+        print('Время работы ifft: ' + str(finish - start))
+    elif method == 'fftshift':
+        start = datetime.now()
+        spectrum = numpy.fft.fftshift(signal)
+        finish = datetime.now()
+        print('Время работы fftshift: ' + str(finish - start))
+
+        start = datetime.now()
+        restored_signal = numpy.fft.ifftshift(spectrum)
+        finish = datetime.now()
+
+        print('Время работы ifftshift: ' + str(finish - start))
+
+    ax.plot(time, restored_signal, 'r', label="Восстановленный")
+
+    ax1 = fig.add_subplot(3, 1, 3)
+    ax1.plot(omegas/ (2 * math.pi) , abs(spectrum), '', label="Спектр")
     ax1.set_xlabel('Частота')
     ax1.set_ylabel('Амплитуда')
-
-    ax.plot(times, restored_signal, 'r', label="Восстановленный", linestyle='--')
 
     ax.legend()
     ax1.legend()
 
 
 if __name__ == "__main__":
-    times, amplitudes = get_data_from_file('sample.wav')
+    time, signal = get_signal('signal 4 сек.wav')
 
+    # График исходного сигнала
     fig = pylab.figure(1)
-    ax = fig.add_subplot(2, 1, 1)
-    ax.plot(times, amplitudes, 'g', label="Исходный сигнал")
+    ax = fig.add_subplot(3, 1, 1)
+    ax.plot(time, signal, '', label="Исходный сигнал")
     ax.set_xlabel("Время")
-    ax.set_ylabel('Напряжение')
+    ax.set_ylabel('Амплитуда')
 
-    first_task()
+    ax = fig.add_subplot(3, 1, 2)
+    ax.plot(time, signal, 'b', label="Исходный сигнал")
+    ax.set_xlabel("Время")
+    ax.set_ylabel('Амплитуда')
 
+
+    # Изменение шага дискретизации
+    df('direct_df')
+    # df('fft')
+    # df('fftshift')
     plt.show()
 
-    print('Complete!')
+
+
