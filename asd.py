@@ -37,19 +37,11 @@ def direct_ift(X):
         real = 0
         for n in range(N):
             angle = 2 * math.pi * k * n / N
-            real += X[k] * np.exp(angle)
+            cos_val = math.cos(angle)
+            sin_val = math.sin(angle)
+            real += X[k].real * cos_val + X[k].imag * sin_val
         x.append(real / N)
     return x
-
-@njit
-def idft(spectrum):
-    N = len(spectrum)
-    restored_signal = np.zeros((N,), dtype=np.complex128)
-    k = np.arange(N)
-    for n in range(N):
-        e = np.exp(2j * np.pi * k * n / N)
-        restored_signal[n] = np.dot(spectrum, e)
-    return restored_signal / np.sqrt(N)
 
 
 # Считывание сигнала из файла
