@@ -56,10 +56,11 @@ def idft(spectrum):
 
 def df(method):
 
+
     N = len(signal)
     delta_t = times[1] - times[0]
     delta_omega = 2 * np.pi / (N * delta_t)
-    omegas = np.array([k * delta_omega for k in range(N-1)])
+    omegas = np.array([k * delta_omega for k in range(N)])
 
     if method == 'direct_df':
         start = datetime.now()
@@ -71,7 +72,6 @@ def df(method):
         restored_signal = direct_ift(spectrum)
         finish = datetime.now()
         print('Время работы direct_ift: ' + str(finish - start))
-        freq = omegas / (2 * math.pi)
     elif method == 'fft':
         start = datetime.now()
         spectrum = numpy.fft.fft(signal)
@@ -82,7 +82,6 @@ def df(method):
         restored_signal = numpy.fft.ifft(spectrum)
         finish = datetime.now()
         print('Время работы ifft: ' + str(finish - start))
-        freq = numpy.fft.fftfreq(restored_signal.size, 0.1)
     else:
         start = datetime.now()
         spectrum = numpy.fft.fftshift(signal)
@@ -93,11 +92,10 @@ def df(method):
         restored_signal = numpy.fft.ifftshift(spectrum)
         finish = datetime.now()
         print('Время работы ifftshift: ' + str(finish - start))
-        freq = numpy.fft.fftfreq(restored_signal.size, 0.1)
 
     ax.plot(times, restored_signal, 'r', label="Восстановленный")
     ax1 = fig.add_subplot(3, 1, 3)
-    ax1.plot(freq, abs(spectrum), '', label="Спектр")
+    ax1.plot(omegas / (2 * np.pi), abs(spectrum), '', label="Спектр")
     ax1.set_xlabel('Частота')
     ax1.set_ylabel('Амплитуда')
 
@@ -106,18 +104,11 @@ def df(method):
 
 
 if __name__ == "__main__":
-    data = np.genfromtxt('S1_P4_P6_hann5_100kHz_Ch2.txt', delimiter='', skip_header=7)
+    data = np.genfromtxt('S1_P4_P6_hann5_100kHz_Ch2.txt', delimiter='')
     signal = data[:, 1]  # второй столбец содержит значения сигнала
 
     # получение временной оси
     times = data[:, 0]
-
-
-    plt.plot(times, signal)
-    plt.xlabel('Время, с')
-    plt.ylabel('Амплитуда')
-    plt.title('График сигнала')
-    plt.show()
 
     # График исходного сигнала
     fig = pylab.figure(1)
@@ -133,8 +124,8 @@ if __name__ == "__main__":
 
 
     # Изменение шага дискретизации
-    df('direct_df')
-    # df('fft')
+    # df('direct_df')
+    df('fft')
     # df('fftshift')
     plt.show()
 
