@@ -4,7 +4,7 @@ from datetime import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 import functions
-from test import get_signal
+from lab1 import get_signal
 
 def direct_ft(x):
     N = len(x)

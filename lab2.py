@@ -1,13 +1,8 @@
 import math
-import time
-import wave
 from datetime import datetime
 from statistics import mean
-
 import matplotlib.pyplot as plt
 import numpy.fft
-from numba import njit
-from scipy.io import wavfile
 import numpy as np
 import pylab
 
@@ -43,16 +38,6 @@ def direct_ift(X):
             real += X[k].real * cos_val + X[k].imag * sin_val
         x.append(real / N)
     return x
-
-@njit
-def idft(spectrum):
-    N = len(spectrum)
-    restored_signal = np.zeros((N,), dtype=np.complex128)
-    k = np.arange(N)
-    for n in range(N):
-        e = np.exp(2j * np.pi * k * n / N)
-        restored_signal[n] = np.dot(spectrum, e)
-    return restored_signal / np.sqrt(N)
 
 
 def df(method):
@@ -92,9 +77,9 @@ def df(method):
         finish = datetime.now()
 
         print('Время работы ifftshift: ' + str(finish - start))
-    print(len(np.abs(spectrum)[np.abs(spectrum) > 0.1]))
     ax.plot(times, restored_signal, 'r', label="Восстановленный")
     ax1 = fig.add_subplot(3, 1, 3)
+    # ax1.plot(omegas / (2 * np.pi), np.abs(spectrum), '', label="Спектр")
     ax1.plot((omegas / (2 * np.pi))[:len(np.abs(spectrum)[np.abs(spectrum)< 0.1])], np.abs(spectrum)[np.abs(spectrum)< 0.1], '', label="Спектр")
     ax1.set_xlabel('Частота')
     ax1.set_ylabel('Амплитуда')
@@ -104,7 +89,7 @@ def df(method):
 
 
 if __name__ == "__main__":
-    data = np.genfromtxt('sig.txt', delimiter='')
+    data = np.genfromtxt('sig.txt', delimiter='', )
     signal = data[:, 1]  # второй столбец содержит значения сигнала
     mean_value = mean(signal)
     for i in range(len(signal)):
@@ -120,7 +105,7 @@ if __name__ == "__main__":
     ax.set_ylabel('Амплитуда')
 
     ax = fig.add_subplot(3, 1, 2)
-    # ax.plot(times, signal, 'b', label="Исходный сигнал")
+    ax.plot(times, signal, 'b', label="Исходный сигнал")
     ax.set_xlabel("Время")
     ax.set_ylabel('Амплитуда')
 
