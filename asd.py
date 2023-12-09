@@ -43,33 +43,22 @@ def direct_ift(X):
         x.append(real / N)
     return x
 
-
-# Считывание сигнала из файла
-def get_signal(path):
-    audio = wave.open(path,mode='r')
-    (nchannels, sampwidth, framerate, nframes, comptype, compname) = audio.getparams()
-    content = audio.readframes(nframes)
-    types = {
-        1: np.int8,
-        2: np.int16,
-        4: np.int32
-    }
-    samples = np.fromstring(content, dtype=types[sampwidth])
-    signal = []
-    for i in range (0,len(samples),2):
-        signal.append((samples[i]+samples[i+1])/2)
-    time = []
-    for i in range(1,nframes+1):
-        time.append(i/framerate)
-    time=np.array(time)
-    signal = np.array(signal,dtype=np.complex128)
-    return time, signal
+@njit
+def idft(spectrum):
+    N = len(spectrum)
+    restored_signal = np.zeros((N,), dtype=np.complex128)
+    k = np.arange(N)
+    for n in range(N):
+        e = np.exp(2j * np.pi * k * n / N)
+        restored_signal[n] = np.dot(spectrum, e)
+    return restored_signal / np.sqrt(N)
 
 
 def df(method):
 
+
     N = len(signal)
-    delta_t = time[1] - time[0]
+    delta_t = times[1] - times[0]
     delta_omega = 2 * np.pi / (N * delta_t)
     omegas = np.array([k * delta_omega for k in range(N)])
 
@@ -77,7 +66,7 @@ def df(method):
         start = datetime.now()
         spectrum = direct_ft(signal)
         finish = datetime.now()
-        print('Время работы direct_df: ' + str(finish - start))
+        print('Время работы direct_ft: ' + str(finish - start))
 
         start = datetime.now()
         restored_signal = direct_ift(spectrum)
@@ -93,7 +82,7 @@ def df(method):
         restored_signal = numpy.fft.ifft(spectrum)
         finish = datetime.now()
         print('Время работы ifft: ' + str(finish - start))
-    elif method == 'fftshift':
+    else:
         start = datetime.now()
         spectrum = numpy.fft.fftshift(signal)
         finish = datetime.now()
@@ -102,13 +91,11 @@ def df(method):
         start = datetime.now()
         restored_signal = numpy.fft.ifftshift(spectrum)
         finish = datetime.now()
-
         print('Время работы ifftshift: ' + str(finish - start))
 
-    ax.plot(time, restored_signal, 'r', label="Восстановленный")
-
+    ax.plot(times, restored_signal, 'r', label="Восстановленный")
     ax1 = fig.add_subplot(3, 1, 3)
-    ax1.plot(omegas/ (2 * math.pi) , abs(spectrum), '', label="Спектр")
+    ax1.plot(omegas / (2 * np.pi), abs(spectrum), '', label="Спектр")
     ax1.set_xlabel('Частота')
     ax1.set_ylabel('Амплитуда')
 
@@ -117,24 +104,28 @@ def df(method):
 
 
 if __name__ == "__main__":
-    time, signal = get_signal('signal 4 сек.wav')
+    data = np.genfromtxt('S1_P4_P6_hann5_100kHz_Ch2.txt', delimiter='')
+    signal = data[:, 1]  # второй столбец содержит значения сигнала
+
+    # получение временной оси
+    times = data[:, 0]
 
     # График исходного сигнала
     fig = pylab.figure(1)
     ax = fig.add_subplot(3, 1, 1)
-    ax.plot(time, signal, '', label="Исходный сигнал")
+    ax.plot(times, signal, '', label="Исходный сигнал")
     ax.set_xlabel("Время")
     ax.set_ylabel('Амплитуда')
 
     ax = fig.add_subplot(3, 1, 2)
-    ax.plot(time, signal, 'b', label="Исходный сигнал")
+    # ax.plot(times, signal, 'b', label="Исходный сигнал")
     ax.set_xlabel("Время")
     ax.set_ylabel('Амплитуда')
 
 
     # Изменение шага дискретизации
-    df('direct_df')
-    # df('fft')
+    # df('direct_df')
+    df('fft')
     # df('fftshift')
     plt.show()
 
