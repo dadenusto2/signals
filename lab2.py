@@ -40,7 +40,7 @@ def direct_ift(X):
     return x
 
 
-def df(method):
+def df(method, cut=False):
     N = len(signal)
     delta_t = times[1] - times[0]
     delta_omega = 2 * np.pi / (N * delta_t)
@@ -79,8 +79,10 @@ def df(method):
         print('Время работы ifftshift: ' + str(finish - start))
     ax.plot(times, restored_signal, 'r', label="Восстановленный")
     ax1 = fig.add_subplot(3, 1, 3)
-    # ax1.plot(omegas / (2 * np.pi), np.abs(spectrum), '', label="Спектр")
-    ax1.plot((omegas / (2 * np.pi))[:len(np.abs(spectrum)[np.abs(spectrum)< 0.1])], np.abs(spectrum)[np.abs(spectrum)< 0.1], '', label="Спектр")
+    if not cut:
+        ax1.plot(omegas / (2 * np.pi), np.abs(spectrum), '', label="Спектр")
+    else:
+        ax1.plot((omegas / (2 * np.pi))[:len(np.abs(spectrum)[np.abs(spectrum)< 0.1])], np.abs(spectrum)[np.abs(spectrum)< 0.1], '', label="Спектр")
     ax1.set_xlabel('Частота')
     ax1.set_ylabel('Амплитуда')
 
@@ -112,7 +114,9 @@ if __name__ == "__main__":
 
     # Изменение шага дискретизации
     # df('direct_df')
-    df('fft')
+    # df('direct_df', True)
+    # df('fft')
+    df('fft', True)
     # df('fftshift')
     plt.show()
 
