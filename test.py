@@ -1,42 +1,70 @@
+import time
+import wave
 from datetime import datetime
+from statistics import mean
+
 import matplotlib.pyplot as plt
+from numba import njit
+from scipy.io import wavfile
 import numpy as np
 import pylab
 
-
-def ft_integral(times, signal, omegas):
-    delta = times[1] - times[0]
+# Прямое преобразованиие Фурье
+def ft_integral(time, signal, omegas):
+    delta = time[1] - time[0]
     X = np.zeros((len(omegas),), dtype=np.complex128)
     for i in range(len(omegas)):
-        X[i] = np.dot(signal, np.exp(-1j * omegas[i] * times))
+        X[i] = np.dot(signal, np.exp(-1j * omegas[i] * time))
     return X * delta
 
 
 # Обратное преобразованиие Фурье
-def ift_integral(times, spectrum, omegas):
+def ift_integral(time, spectrum, omegas):
     delta_omega = omegas[1] - omegas[0]
-    x = np.zeros((len(times)))
-    for i in range(len(times)):
-        x[i] = np.dot(spectrum, np.exp(1j * omegas * times[i])).real
+    x = np.zeros((len(time),))
+    for i in range(len(time)):
+        x[i] = np.dot(spectrum, np.exp(1j * omegas * time[i])).real
     return x * (delta_omega / np.pi)
 
 
-def df(up, step):
+# Считывание сигнала из файла
+def get_signal(path):
+    audio = wave.open(path,mode='r')
+    (nchannels, sampwidth, framerate, nframes, comptype, compname) = audio.getparams()
+    content = audio.readframes(nframes)
+    types = {
+        1: np.int8,
+        2: np.int16,
+        4: np.int32
+    }
+    samples = np.fromstring(content, dtype=types[sampwidth])
+    signal = []
+    for i in range (0,len(samples),2):
+        signal.append((samples[i]+samples[i+1])/2)
+    time = []
+    for i in range(1,nframes+1):
+        time.append(i/framerate)
+    time=np.array(time)
+    signal = np.array(signal,dtype=np.complex128)
+    return time, signal
+
+
+def df(up, step,):
     f = np.arange(0, up, step)
     omegas = f*2*np.pi
 
     # сумма (прямоугольники)
     start = datetime.now()
-    spectrum = ft_integral(times, signal, omegas)
+    spectrum = ft_integral(time, signal, omegas)
     finish = datetime.now()
     print('Время работы ft_integral: ' + str(finish - start))
 
     start = datetime.now()
-    restored_signal = ift_integral(times, spectrum, omegas)
+    restored_signal = ift_integral(time, spectrum, omegas)
     finish = datetime.now()
     print('Время работы ift_integral: ' + str(finish - start))
 
-    ax.plot(times, restored_signal, 'r', label="Восстановленный")
+    ax.plot(time, restored_signal, 'r', label="Восстановленный")
 
     ax1 = fig.add_subplot(3, 1, 3)
     ax1.plot(f, abs(spectrum), '', label="Спектр")
@@ -47,38 +75,33 @@ def df(up, step):
     ax1.legend()
 
 
+
 if __name__ == "__main__":
-    # чтение данных из файла
-    data = np.genfromtxt('S1_P4_P6_hann5_100kHz_Ch2.txt', delimiter='', skip_header=7)
-    signal_values = data[:, 1]  # второй столбец содержит значения сигнала
-
+    data = np.genfromtxt('sig.txt', delimiter='')
+    signal = data[:, 1]  # второй столбец содержит значения сигнала
     # получение временной оси
-    times = data[:, 0]
+    time = data[:, 0]
 
-    # получение значения сигнала
-    signal = data[:, 1]
+    # График исходного сигнала
     fig = pylab.figure(1)
     ax = fig.add_subplot(3, 1, 1)
-    ax.plot(times, signal, '', label="Исходный сигнал")
+    ax.plot(time, signal, '', label="Исходный сигнал")
     ax.set_xlabel("Время")
     ax.set_ylabel('Амплитуда')
 
     ax = fig.add_subplot(3, 1, 2)
-    ax.plot(times, signal, 'b', label="Исходный сигнал")
+    ax.plot(time, signal, 'b', label="Исходный сигнал")
     ax.set_xlabel("Время")
     ax.set_ylabel('Амплитуда')
 
+
     # Изменение шага дискретизации
     # df(100000, 1)
-    df(100000, 0.1)
-    # plt.show()
-    # df (3000, 0.1)
-
+    # df(100000, 10)
     # # Изменение верхнехней границы частот
-    # df(150000, 0.1)
-    # df(300000, 0.1)
+    # df(200000, 10)
+    mean_value = mean(signal)
+    for i in range(len(signal)):
+        signal[i] = signal[i] - mean_value
+    df(200000, 10)
     plt.show()
-
-
-
-
